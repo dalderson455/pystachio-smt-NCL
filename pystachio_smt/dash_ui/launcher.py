@@ -5,8 +5,12 @@
 # Copyright © 2021 Edward Higgins <ed.higgins@york.ac.uk>
 #
 # Distributed under terms of the MIT license.
-import dash
-import dash_html_components as html
+
+#import dash
+#import dash_html_components as html
+
+from dash import html
+from dash import dcc
 
 from dash_ui.app import app
 import dash_ui.navbar

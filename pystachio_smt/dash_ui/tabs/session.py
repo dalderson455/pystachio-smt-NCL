@@ -12,8 +12,8 @@
 import os
 import base64
 import json
-import dash_html_components as html
-import dash_core_components as dcc
+from dash import html
+from dash import dcc
 from dash.dependencies import Input,Output,State
 
 from datetime import datetime
@@ -86,7 +86,7 @@ def set_active_file(filename, img_file, info_file, session_id):
         full_filename=""
         if ".tif" in filename:
             img_file = os.path.join(full_data_folder, session_id, filename)
-        elif ".tsv" in filename:
+        elif ".csv" in filename:
             info_file = os.path.join(full_data_folder, session_id, filename)
         elif ".png" in filename:
             info_file = os.path.join(web_data_folder, session_id, filename)

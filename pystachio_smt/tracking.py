@@ -35,7 +35,7 @@ def track(params):
     # Read in the image data
     image_data = images.ImageData()
     image_data.read(params.name + ".tif", params)
-
+    ### ALEX stuff ###
     if params.ALEX==True:
         imageL=np.zeros((image_data.num_frames//2,image_data.frame_size[1],image_data.frame_size[0]//2))
         imageR=np.zeros((image_data.num_frames//2,image_data.frame_size[1],image_data.frame_size[0]//2))
@@ -56,7 +56,7 @@ def track(params):
         for frame in range(image_data.num_frames):
             all_spots.append(track_frame(image_data[frame], frame, params))
         trajs = trajectories.build_trajectories(all_spots, params)
-        trajectories.write_trajectories(trajs, params.name +  "_Lchannel_trajectories.tsv")
+        trajectories.write_trajectories(trajs, params.name +  "_Lchannel_trajectories.csv")
 
         #RHS
         image_data.pixel_data = imageR
@@ -64,47 +64,45 @@ def track(params):
         for frame in range(image_data.num_frames):
             all_spots.append(track_frame(image_data[frame], frame, params))
         trajs = trajectories.build_trajectories(all_spots, params)
-        trajectories.write_trajectories(trajs, params.name +  "_Rchannel_trajectories.tsv")
+        trajectories.write_trajectories(trajs, params.name +  "_Rchannel_trajectories.csv")
 
-    # For each frame, detect spots
+    # For each frame, detect spots NOT ALEX
     else:
-        all_spots = []
-        if params.num_procs == 0:
-            for frame in range(image_data.num_frames):
-                all_spots.append(track_frame(image_data[frame], frame, params))
+        all_spots = [] # Empty list to hold the spot data for each frame
+        if params.num_procs == 0: # No multiprocessing  
+            # Loop over the frames and find the spots
+            for frame in range(image_data.num_frames): # Loop over the frames
+                all_spots.append(track_frame(image_data[frame], frame, params)) # Find spots in this frame
 
-        else:
-            res = [None] * image_data.num_frames
-            with mp.Pool(params.num_procs) as pool:
-                for frame in range(image_data.num_frames):
-                    res[frame] = pool.apply_async(track_frame, (image_data[frame], frame, params))
-                for frame in range(image_data.num_frames):
-                    all_spots.append(res[frame].get())
+        else: # Multiprocessing
+            res = [None] * image_data.num_frames # Create results array
+            with mp.Pool(params.num_procs) as pool: # Create process pool
+                for frame in range(image_data.num_frames): #Loop through frames
+                    res[frame] = pool.apply_async(track_frame, (image_data[frame], frame, params)) # Find spots in this frame
+                for frame in range(image_data.num_frames): # Loop through frames
+                    all_spots.append(res[frame].get()) # Get the results from the processes
 
         # Link the spot trajectories across the frames
-        trajs = trajectories.build_trajectories(all_spots, params)
-        trajectories.write_trajectories(trajs, params.name + "_trajectories.tsv")
+        trajs = trajectories.build_trajectories(all_spots, params) # Build the trajectories
+        trajectories.write_trajectories(trajs, params.name + "_trajectories.csv") # Write the trajectories to a file
 
-def track_frame(frame_data, frame, params):
-        # Find the spots in this frame
-        frame_spots = spots.Spots(frame=frame)
-        frame_spots.find_in_frame(frame_data.as_image()[:, :], params)
-        found_spots = frame_spots.num_spots
-        frame_spots.merge_coincident_candidates()
+def track_frame(frame_data, frame, params): # Function to find the spots in a frame
+        frame_spots = spots.Spots(frame=frame) # Create a new Spots object for this frame
+        frame_spots.find_in_frame(frame_data.as_image()[:, :], params) # Find the spots in this frame
+        found_spots = frame_spots.num_spots # Number of spots found in this frame
+        frame_spots.merge_coincident_candidates() # Merge coincident candidates
 
         merged_spots = frame_spots.num_spots
         # Iteratively refine the spot centres
-        frame_spots.refine_centres(frame_data, params)
-
-        frame_spots.filter_candidates(frame_data, params)
-
-        frame_spots.get_spot_intensities(frame_data.as_image()[:,:], params)
-        frame_spots.get_spot_widths(frame_data.as_image()[:,:], params)
-        if params.verbose:
+        frame_spots.refine_centres(frame_data, params) # Refine the spot centres
+        frame_spots.filter_candidates(frame_data, params) # Filter the candidates
+        frame_spots.get_spot_intensities(frame_data.as_image()[:,:], params) # Get the spot intensities
+        frame_spots.get_spot_widths(frame_data.as_image()[:,:], params) # Get the spot widths
+        if params.verbose: # If Verbose(?) is enabled
             print(
                 f"Frame {frame:4d}: found {frame_spots.num_spots:3d} spots "
                 f"({found_spots:3d} identified, "
                 f"{found_spots-merged_spots:3d} merged, "
                 f"{merged_spots-frame_spots.num_spots:3d} filtered)"
-            )
-        return frame_spots
+            )  # print spot stats
+        return frame_spots # Return the spots found in this frame

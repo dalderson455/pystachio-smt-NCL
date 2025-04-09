@@ -106,5 +106,5 @@ def simulate(params):
     real_trajs = trajectories.build_trajectories(real_spots, params)
 
     image.write(params.name + ".tif")
-    trajectories.write_trajectories(real_trajs, params.name + '_simulated.tsv')
+    trajectories.write_trajectories(real_trajs, params.name + '_simulated.csv')
     return image, real_trajs

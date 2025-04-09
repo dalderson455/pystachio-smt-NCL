@@ -10,8 +10,8 @@
 
 """
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc
+from dash import html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 import plotly.express as px
@@ -50,7 +50,7 @@ def update_slider(render_selection, vis_frame, seedname):
     )
     if (render_selection == "render-all-trajectories" or
         render_selection == "render-current-trajectories"):
-        trajs = read_trajectories(seedname + "_trajectories.tsv")
+        trajs = read_trajectories(seedname + "_trajectories.csv")
         colors = px.colors.qualitative.Plotly
         for traj in trajs:
             if (render_selection == "render-current-trajectories" and

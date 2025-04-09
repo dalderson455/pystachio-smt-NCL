@@ -20,8 +20,8 @@ import trajectories
 def render(params):
     image_data = images.ImageData()
     image_data.read(params.name+".tif", params)
-    trajs = trajectories.read_trajectories(params.name + "_trajectories.tsv")
-    true_trajs = trajectories.read_trajectories(params.name + "_simulated.tsv")
+    trajs = trajectories.read_trajectories(params.name + "_trajectories.csv")
+    true_trajs = trajectories.read_trajectories(params.name + "_simulated.csv")
 
     maxval = image_data.max_intensity()
     figure = plt.figure()

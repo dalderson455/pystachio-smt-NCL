@@ -21,9 +21,9 @@ def postprocess(params, simulated=False):
     if not params.ALEX:
         trajs = []
         if False: #simulated:
-            trajs = trajectories.read_trajectories(params.name + "_simulated_trajectories.tsv")
+            trajs = trajectories.read_trajectories(params.name + "_simulated_trajectories.csv")
         else:
-            trajs = trajectories.read_trajectories(params.name + "_trajectories.tsv")
+            trajs = trajectories.read_trajectories(params.name + "_trajectories.csv")
         spots = trajectories.to_spots(trajs)
         if params.verbose:
             print(f"Looking at {len(trajs)} trajectories across {len(spots)} frames")
@@ -56,11 +56,11 @@ def postprocess(params, simulated=False):
         if params.copy_number==True: get_copy_number(params, calculated_isingle)
 
     elif params.ALEX:
-
-        Rtrajs = trajectories.read_trajectories(params.name + "_Rchannel_trajectories.tsv")
-        Ltrajs = trajectories.read_trajectories(params.name + "_Lchannel_trajectories.tsv")
-        Rspots = trajectories.to_spots(Rtrajs)
-        Lspots = trajectories.to_spots(Ltrajs)
+        if params.colocalize==True:
+            Rtrajs = trajectories.read_trajectories(params.name + "_Rchannel_trajectories.csv")
+            Ltrajs = trajectories.read_trajectories(params.name + "_Lchannel_trajectories.csv")
+            Rspots = trajectories.to_spots(Rtrajs)
+            Lspots = trajectories.to_spots(Ltrajs)
 
         Rintensities= np.array([])
         Rsnrs = np.array([])
@@ -188,7 +188,7 @@ def colocalize(params, Ltrajs, Rtrajs):
                 Llinks.append(id1[j])
                 Rlinks.append(id2[j])
                 nlinks.append(1)
-    outfile = params.name + "_colocalized_trajectories.tsv"
+    outfile = params.name + "_colocalized_trajectories.csv"
     f = open(outfile, 'w')
     f.write("Left_traj\tRight_traj\n_frames")
     for i in range(len(Llinks)):
@@ -263,7 +263,7 @@ def get_copy_number(params, calculated_isingle, channel=None):
     image_data.read(params)
     frame =image_data.pixel_data[spots.laser_on_frame,:,:]
     copy_nums = []
-    f = open(params.name + "_copy_numbers.tsv")
+    f = open(params.name + "_copy_numbers.csv")
     f.write("Cell\tCopy number\n")
     bg = np.mean(frame[image_data.mask==0])
     for i in range(1,np.amax(image_data.mask_data)+1):
@@ -272,7 +272,7 @@ def get_copy_number(params, calculated_isingle, channel=None):
     f.close()
     # import tifffile as tiff
     # copy_nums = []
-    # f = open(params.name + "_copy_numbers.tsv", 'w')
+    # f = open(params.name + "_copy_numbers.csv", 'w')
     # f.write("Cell\tCopy number\n")
     # for sim in range(1,11):
     #     image_data = tiff.imread("../data/Data4Jack/simImages/"+str(sim)+".tif")
@@ -308,7 +308,7 @@ def plot_snr(params,snr,channel=None):
         plt.show()
     plt.close()
     peak = x[np.where(pdf == np.amax(pdf))]
-    ofile = params.name + "_data.tsv"
+    ofile = params.name + "_data.csv"
     f = open(ofile, 'w')
     for i in range(len(snr)):
         f.write(str(snr[i])+"\n")
@@ -354,7 +354,7 @@ def get_isingle(params, intensities, channel=None):
     if params.display_figures:
         plt.show()
     plt.close()
-    ofile = outseed + "_data.tsv"
+    ofile = outseed + "_data.csv"
     f = open(ofile, 'w')
     for i in range(len(intensities)):
         f.write(str(intensities[i])+"\n")
@@ -420,11 +420,11 @@ def get_diffusion_coef(traj_list, params, channel=None):
     if params.display_figures:
         plt.show()
     plt.close()
-    f = open(params.name + "_diff_coeff_data.tsv", "w")
+    f = open(params.name + "_diff_coeff_data.csv", "w")
     for i in range(len(diffusion_coefs)):
         f.write(str(float(diffusion_coefs[i]))+"\n")
     f.close()
-    f = open(params.name + "_diff_coeff_loc_precision_data.tsv", "w")
+    f = open(params.name + "_diff_coeff_loc_precision_data.csv", "w")
     for i in range(len(loc_precisions)):
         f.write(str(float(loc_precisions[i]))+"\n")
     f.close()
@@ -439,7 +439,7 @@ def plot_traj_intensities(params, trajs, channel=None, chung_kennedy=True):
         #ck_data.append(chung_kennedy_filter(t,params.chung_kennedy_window,1)[0][:-1])
     ofile = params.name+"_chung_kennedy_data.csv"
     f = open(ofile, 'w')
-    ck_data = np.array(ck_data)
+    #ck_data = np.array(ck_data) ##DWA##  shapes in ck_data are not the same so removed conversion to array
     for ck in range(len(ck_data)): 
         f.write(str(ck_data[ck][0]))
         for j in range(len(ck_data[ck])): 
@@ -482,6 +482,99 @@ def plot_traj_intensities(params, trajs, channel=None, chung_kennedy=True):
             plt.show()
         plt.close()
 
+# def get_stoichiometries(trajs, isingle, params, channel=None):
+#     # Let's do the easy part first - the ones where they do not start at the start
+#     stoics = []
+#     startframe = 100000
+#     for traj in trajs:
+#         if traj.start_frame<startframe and traj.length>=params.num_stoic_frames: startframe=traj.start_frame
+#         # print(startframe)
+#     for traj in trajs:
+#         if traj.length <params.num_stoic_frames:
+#             continue
+#         if params.stoic_method == "Initial":
+#             # Initial intensity
+#             traj.stoichiometry = traj.intensity[0] / isingle
+#         elif params.stoic_method == "Mean":
+#             # Mean of first N frames
+#             traj.stoichiometry = (
+#                 np.mean(traj.intensity[: params.num_stoic_frames]) / isingle
+#                 )
+#         elif params.stoic_method == "Linear":
+#             if traj.start_frame-startframe>4:
+#                 continue #stoics.append(traj.intensity[0] / isingle)
+#             else:
+#                 xdata = (
+#                     np.arange(0, params.num_stoic_frames , dtype="float")
+#                     # * params.frameTime
+#                 )
+#                 ydata = traj.intensity[0: params.num_stoic_frames]
+#                 popt, pcov = curve_fit(straightline, xdata, ydata)
+#                 intercept = popt[1]
+#                 if intercept > 0 and popt[0]<0 and startframe!=100000:
+#                     traj.stoichiometry = (intercept + abs((traj.start_frame-startframe)*popt[0])) / isingle
+#                     traj.stoichiometry = traj.stoichiometry[0]
+#                 else:
+#                     continue 
+#                     # traj.stoichiometry = traj.intensity[0] / isingle
+#         stoics.append(traj.stoichiometry)
+#     stoics = np.array(stoics)
+#     max_stoic = int(np.round(np.amax(stoics)))
+
+#     bandwidth = 0.7
+#     kde = gaussian_kde(stoics, bw_method=bandwidth)
+#     x = np.linspace(0, max_stoic, max_stoic)
+#     pdf = kde.evaluate(x)
+    
+#     fig, ax1 = plt.subplots()
+#     l1 = ax1.hist(
+#         stoics,
+#         bins=np.arange(0, np.amax(np.round(stoics)+1), 1),
+#         color="gray"
+#     )
+#     ax2 = ax1.twinx()
+#     l2 = ax2.plot(x, pdf, "k-", label="Gaussian KDE")
+#     plt.ylabel("Probability density (a.u.)")
+#     ax2.ticklabel_format(axis="y", style="sci", scilimits=(0, 2))
+
+#     plt.xticks(range(0,max_stoic+1))
+#     plt.xlabel("Rounded stoichiometry")
+#     plt.ylabel("N")
+    
+#     if channel=="L":
+#         plt.title("Left channel stoichiometry")
+#         oseed = params.name+"_Lchannel_stoichiometry"
+#     elif channel=="R":
+#         plt.title("Right channel stoichiometry")
+#         oseed = params.name+"_Rchannel_stoichiometry"
+#     else:
+#         plt.title("Whole frame stoichiometry")
+#         oseed = params.name+"_stoichiometry"
+#     plt.savefig(oseed+"_histogram.png", dpi=300)
+#     if params.display_figures:
+#         plt.show()
+#     plt.close()
+#     plt.scatter(range(len(stoics)), stoics)
+#     plt.xlabel("Spot #")
+#     plt.ylabel("Raw stoichiometry")
+#     if channel=="L":
+#         plt.title("Left channel stoichiometry")
+#         oseed = params.name+"_Lchannel_stoichiometry"
+#     elif channel=="R":
+#         plt.title("Right channel stoichiometry")
+#         oseed = params.name+"_Rchannel_stoichiometry"
+#     else:
+#         plt.title("Whole frame stoichiometry")
+#         oseed = params.name+"_stoichiometry"
+#     plt.savefig(oseed+"_scatter.png", dpi=300)
+#     if params.display_figures:
+#         plt.show()
+#     plt.close()
+#     f = open(oseed + "_data.csv", "w")
+#     for i in range(len(stoics)):
+#         f.write(str(float(stoics[i]))+"\n")
+#     f.close()
+#     return 0
 def get_stoichiometries(trajs, isingle, params, channel=None):
     # Let's do the easy part first - the ones where they do not start at the start
     stoics = []
@@ -520,30 +613,70 @@ def get_stoichiometries(trajs, isingle, params, channel=None):
                     continue 
                     # traj.stoichiometry = traj.intensity[0] / isingle
         stoics.append(traj.stoichiometry)
-    #print(stoics)
+    
+    # Check if have enough stoichiometry values
+    if len(stoics) < 2:
+        print(f"Warning: Not enough stoichiometry values (found {len(stoics)}) to create KDE and histograms.")
+        if len(stoics) == 0:
+            print("No valid stoichiometries found. Check filtering criteria.")
+            # Create empty file to indicate processing was attempted
+            if channel=="L":
+                oseed = params.name+"_Lchannel_stoichiometry"
+            elif channel=="R":
+                oseed = params.name+"_Rchannel_stoichiometry"
+            else:
+                oseed = params.name+"_stoichiometry"
+            f = open(oseed + "_data.csv", "w")
+            f.write("# No valid stoichiometries found\n")
+            f.close()
+            return 0
+        
     stoics = np.array(stoics)
-    max_stoic = int(np.round(np.amax(stoics)))
-
-    bandwidth = 0.7
-    kde = gaussian_kde(stoics, bw_method=bandwidth)
-    x = np.linspace(0, max_stoic, max_stoic)
-    pdf = kde.evaluate(x)
     
+    # For plotting, we need at least one value
+    if len(stoics) >= 1:
+        max_stoic = int(np.round(np.amax(stoics)))
+    else:
+        # Fallback if somehow we have an empty array despite earlier checks
+        max_stoic = 1
+    
+    # Only create KDE if we have multiple values
+    if len(stoics) >= 2:
+        bandwidth = 0.7
+        kde = gaussian_kde(stoics, bw_method=bandwidth)
+        x = np.linspace(0, max_stoic, max(1, max_stoic))  # Ensure at least 1 point
+        pdf = kde.evaluate(x)
+    
+    # Create figure for histogram
     fig, ax1 = plt.subplots()
-    l1 = ax1.hist(
-        stoics,
-        bins=np.arange(0, np.amax(np.round(stoics)+1), 1),
-        color="gray"
-    )
-    ax2 = ax1.twinx()
-    l2 = ax2.plot(x, pdf, "k-", label="Gaussian KDE")
-    plt.ylabel("Probability density (a.u.)")
-    ax2.ticklabel_format(axis="y", style="sci", scilimits=(0, 2))
-
-    plt.xticks(range(0,max_stoic+1))
-    plt.xlabel("Rounded stoichiometry")
-    plt.ylabel("N")
     
+    # Plot histogram if we have any data
+    if len(stoics) > 0:
+        l1 = ax1.hist(
+            stoics,
+            bins=np.arange(0, np.amax(np.round(stoics)+1), 1),
+            color="gray"
+        )
+    else:
+        # Create empty plot if no data
+        l1 = ax1.bar([], [], color="gray")
+    
+    # Only create twin axis and KDE plot if we have multiple values
+    if len(stoics) >= 2:
+        ax2 = ax1.twinx()
+        l2 = ax2.plot(x, pdf, "k-", label="Gaussian KDE")
+        plt.ylabel("Probability density (a.u.)")
+        ax2.ticklabel_format(axis="y", style="sci", scilimits=(0, 2))
+    
+    # Set labels regardless of data status
+    plt.xlabel("Rounded stoichiometry")
+    ax1.set_ylabel("N")
+    
+    # Set ticks only if we have data
+    if len(stoics) > 0:
+        plt.xticks(range(0, max_stoic+1))
+    
+    # Set title based on channel
     if channel=="L":
         plt.title("Left channel stoichiometry")
         oseed = params.name+"_Lchannel_stoichiometry"
@@ -553,28 +686,37 @@ def get_stoichiometries(trajs, isingle, params, channel=None):
     else:
         plt.title("Whole frame stoichiometry")
         oseed = params.name+"_stoichiometry"
+    
+    # Save histogram
     plt.savefig(oseed+"_histogram.png", dpi=300)
     if params.display_figures:
         plt.show()
     plt.close()
-    plt.scatter(range(len(stoics)), stoics)
-    plt.xlabel("Spot #")
-    plt.ylabel("Raw stoichiometry")
-    if channel=="L":
-        plt.title("Left channel stoichiometry")
-        oseed = params.name+"_Lchannel_stoichiometry"
-    elif channel=="R":
-        plt.title("Right channel stoichiometry")
-        oseed = params.name+"_Rchannel_stoichiometry"
-    else:
-        plt.title("Whole frame stoichiometry")
-        oseed = params.name+"_stoichiometry"
-    plt.savefig(oseed+"_scatter.png", dpi=300)
-    if params.display_figures:
-        plt.show()
-    plt.close()
-    f = open(oseed + "_data.tsv", "w")
+    
+    # Create scatter plot only if we have data
+    if len(stoics) > 0:
+        plt.scatter(range(len(stoics)), stoics)
+        plt.xlabel("Spot #")
+        plt.ylabel("Raw stoichiometry")
+        
+        # Set title based on channel
+        if channel=="L":
+            plt.title("Left channel stoichiometry")
+        elif channel=="R":
+            plt.title("Right channel stoichiometry")
+        else:
+            plt.title("Whole frame stoichiometry")
+        
+        # Save scatter plot
+        plt.savefig(oseed+"_scatter.png", dpi=300)
+        if params.display_figures:
+            plt.show()
+        plt.close()
+    
+    # Write data to file
+    f = open(oseed + "_data.csv", "w")
     for i in range(len(stoics)):
         f.write(str(float(stoics[i]))+"\n")
     f.close()
+    
     return 0

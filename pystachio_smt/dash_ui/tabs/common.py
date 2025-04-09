@@ -6,8 +6,8 @@
 #
 # Distributed under terms of the MIT license.
 
-import dash_html_components as html
-import dash_core_components as dcc
+from dash import html
+from dash import dcc
 
 def get_param_input(name, param, param_class):
     param_type =  type(param["default"])

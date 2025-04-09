@@ -195,8 +195,8 @@ def compare_trajectories(params):
     all_target_spots = []
     all_spots = []
 
-    trajs = read_trajectories(params.name + "_trajectories.tsv")
-    target_trajs = read_trajectories(params.name + "_simulated.tsv")
+    trajs = read_trajectories(params.name + "_trajectories.csv")
+    target_trajs = read_trajectories(params.name + "_simulated.csv")
 
     frame = 0
     done_all_frames = False

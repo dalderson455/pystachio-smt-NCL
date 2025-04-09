@@ -11,8 +11,8 @@
 """
 from pathlib import Path
 import tifffile
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc
+from dash import html
 from dash.dependencies import Input, Output
 import plotly.express as px
 import plotly.graph_objects as go
@@ -77,7 +77,7 @@ def update_slider(render_selection, vis_frame, active_file):
         )
         if (render_selection == "render-all-trajectories" or
             render_selection == "render-current-trajectories"):
-            trajs = read_trajectories(params.name + "_trajectories.tsv")
+            trajs = read_trajectories(params.name + "_trajectories.csv")
             colors = px.colors.qualitative.Plotly
             if trajs:
                 for traj in trajs:
