@@ -115,7 +115,35 @@ class ImageData:
         # Create the data array
         img_data = self.as_image(drop_dim=False)
 
-        tifffile.imsave(filename, img_data)
+        tifffile.imwrite(filename, img_data)
+    # def write(self, filename):
+    #     # Create the data array
+    #     img_data = self.as_image(drop_dim=False)
+
+    #     # --- BEGIN DEBUGGING ---
+    #     print("--- Debugging ImageData.write ---")
+    #     print(f"Attempting to write to filename: '{filename}'")
+    #     print(f"Type of img_data: {type(img_data)}")
+    #     if isinstance(img_data, np.ndarray):
+    #         print(f"img_data dtype: {img_data.dtype}")
+    #         print(f"img_data shape: {img_data.shape}")
+    #         print(f"Are all img_data values finite? {np.isfinite(img_data).all()}")
+    #         print(f"Min value: {np.min(img_data)}, Max value: {np.max(img_data)}")
+    #     else:
+    #         print("img_data is NOT a NumPy array!")
+    #     print("--- End Debugging ---")
+
+    #     try:
+    #         # The failing call
+    #         tifffile.imsave(filename, img_data)
+    #         print(f"Successfully wrote {filename}") # Add success message
+    #     except Exception as e:
+    #         print(f"!!! ERROR during tifffile.imsave !!!")
+    #         print(f"Exception type: {type(e)}")
+    #         print(f"Exception args: {e.args}")
+    #         print(f"Exception repr: {repr(e)}")
+    #         # Re-raise the exception to get the original traceback *after* printing
+    #         raise e
 
     def rotate(self, angle):
         if angle % 90 == 0:
