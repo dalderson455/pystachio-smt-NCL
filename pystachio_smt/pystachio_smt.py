@@ -22,15 +22,14 @@ Version: 0.2.0
 
 import sys
 import numpy as np
+from . import images
+from . import parameters
+from . import postprocessing
+from . import simulation
+from . import tracking
+from . import trajectories
+from . import visualisation
 
-import images
-import parameters
-import postprocessing
-import simulation
-import tracking
-import trajectories
-import visualisation
-import dash_ui.launcher
 
 def main():
     params = parameters.Parameters()
@@ -38,10 +37,8 @@ def main():
     sim=False
     
     for task in params.task:
-        if task == "app":
-            dash_ui.launcher.launch_app(params)
 
-        elif task == "help":
+        if task == "help":
             if (len(sys.argv) > 2):
                 params.help(sys.argv[2])
             else:

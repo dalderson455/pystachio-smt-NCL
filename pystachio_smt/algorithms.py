@@ -1,9 +1,9 @@
-#! /usr/bin/env python3
+# ! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 # vim:fenc=utf-8
-#
+
 # Copyright © 2020 Edward Higgins <ed.higgins@york.ac.uk>
-#
+
 # Distributed under terms of the MIT license.
 
 """ ALGORITHMS - Low level algorithms module
@@ -15,191 +15,257 @@ Description:
 
 Contains:
     function fwhm
-    function get_distance_list
-    function find_local_maxima
-    function ultimate_erode
-    function gaussian
-    functino moments
-    function fit_gaussian
+    function find_local_maxima_scipy
+    function ultimate_erode_scipy
+    function gaussian_formula
+    function gaussian_2d_for_curve_fit
+    function moments
+    function fit2Dgaussian
 
 Author:
     Edward Higgins & JWS
+    
+    DWA - 2023-10-03 - Added scipy.ndimage functions to replace numba.jit
+    Gemini - 2025-04-14 - Refreshed comments
 
-Version: 0.2.0
+Version: 0.2.1
 """
 
 import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.ndimage
 from scipy import optimize
-
-from numba import jit
+from scipy.optimize import curve_fit
 
 def fwhm(data):
-    """FWHM - Calculates the width of the highest peak in data
-
-    Description:
-        fwhm calculates the full width at half maximum of the highest peak in
-        `data`, a 1D numpy array. Both the position and width of the peak are
-        returned relative to the array indices.
-
-        If the peak goes over the edge of the array, the width is set to None.
-
-    Inputs:
-        np.array([N]): data
-            Input data containing the peak
-
-    Outputs:
-        float: x_width
-            Width of the peak
-
-        float: extremum_val
-            Index of the peak position
-    """
-
+    # Create array of indices (0-255)
     x = np.linspace(0, 255, 256).astype(int)
 
+    # Normalise data (max value becomes 1)
     data = data / np.max(data)
+    # Get size of data array minus 1
     N = data.size - 1
 
+    # Define half-max level
     lev50 = 0.5
+    # Check if peak is positive or negative
     if data[0] < lev50:
+        # Find index of max value
         centre_index = np.argmax(data)
+        # Polarity flag (positive peak)
         Pol = +1
     else:
+        # Find index of min value
         centre_index = np.argmin(data)
+        # Polarity flag (negative peak)
         Pol = -1
 
+    # Handle case where peak is at edge
     if centre_index > 254:
         print("WARNING: Struggling to find a peak in histogram")
         centre_index = 254
 
+    # Get index value of peak centre
     extremum_val = x[centre_index]
 
+    # Find leading edge crossing 50% level
     i = 1
+    # Iterate until sign change or end of array
     while np.sign(data[i] - lev50) == np.sign(data[i - 1] - lev50) and i < 255:
         i += 1
 
+    # Interpolate exact crossing point (leading edge)
     interp = (lev50 - data[i - 1]) / (data[i] - data[i - 1])
     lead_t = x[i - 1] + interp * (x[i] - x[i - 1])
 
+    # Find trailing edge crossing 50% level
     i = centre_index + 1
+    # Iterate from peak until sign change or end of array
     while (np.sign(data[i] - lev50) == np.sign(data[i - 1] - lev50)) and (i <= N - 1):
         i += 1
 
+    # Check if trailing edge found within array
     if i != N:
-        p_type = 1
+        # Interpolate exact crossing point (trailing edge)
         interp = (lev50 - data[i - 1]) / (data[i] - data[i - 1])
         trail_t = x[i - 1] + interp * (x[i] - x[i - 1])
+        # Calculate FWHM
         x_width = trail_t - lead_t
     else:
-        p_type = 2
+        # Peak goes off edge, width is zero
         trail_t = None
         x_width = 0
 
+    # Return width and peak position
     return (x_width, extremum_val)
 
+def find_local_maxima_scipy(img):
+    # Return empty if input image is invalid
+    if img is None or img.size == 0:
+        return []
+        
+    # Find max value in 3x3 neighbourhood for each pixel
+    maximum_img = scipy.ndimage.maximum_filter(img, size=3, mode='constant', cval=0.0)
 
-def get_distance_list(r_max):
-    L = 2 * r_max + 1
-    distance_map = np.zeros([L, L])
-    for i in range(L):
-        for j in range(L):
-            distance_map[i, j] = np.sqrt((i - r_max) ** 2 + (j - r_max) ** 2)
+    # Create mask where pixel value equals neighbourhood max
+    local_max_mask = (img == maximum_img)
 
-    distance_list = []
-    for i in range(L):
-        for j in range(L):
-            if distance_map[i, j] <= r_max:
-                distance_list.append([i - r_max, j - r_max, distance_map[i, j]])
+    # Ensure maxima are also non-zero
+    local_max_mask &= (img > 0)
 
-    distance_list.sort(key=lambda x: x[2])
+    # Get coordinates (y, x) of maxima from mask
+    coords_yx = np.nonzero(local_max_mask)
 
-    return distance_list
+    # Convert (y, x) coordinates to list of [x, y]
+    if coords_yx[0].size > 0:
+        # Stack x and y coords, transpose, convert to list
+        local_maxima_xy = np.stack((coords_yx[1], coords_yx[0]), axis=-1).tolist()
+    else:
+        # Return empty list if no maxima found
+        local_maxima_xy = []
 
+    # Return list of [x, y] maxima coordinates
+    return local_maxima_xy
 
-@jit(nopython=True)
-def find_local_maxima(img):
-    local_maxima = []
-    for i in range(1, img.shape[0] - 1):
-        for j in range(1, img.shape[1] - 1):
-            if (
-                img[i, j] != 0
-                and np.max(img[i - 1 : i + 2, j - 1 : j + 2]) == img[i, j]
-            ):
-                local_maxima.append([j, i])
+def ultimate_erode_scipy(img):
+    # Return empty if input image is invalid or all zeros
+    if img is None or img.size == 0 or np.all(img == 0):
+        return []
 
-    return local_maxima
+    # Calc Euclidean Distance Transform (dist to nearest zero pixel)
+    img_dist = scipy.ndimage.distance_transform_edt(img)
 
+    # Find peaks (local maxima) in the distance map
+    # These peaks represent object centres (ultimate eroded points)
+    spot_locations = find_local_maxima_scipy(img_dist)
 
-def ultimate_erode(img, orig):
-    distance_list = np.array(get_distance_list(16))
-
-    img_dist = uer_jittable(img, distance_list)
-
-    spot_locations = find_local_maxima(img_dist)
-
-    if not spot_locations:
-        spot_locations = []
-
+    # Return list of [x, y] centre coordinates
     return spot_locations
 
-@jit(nopython=True)
-def uer_jittable(img, distance_list):
-    img_dist = np.zeros(img.shape)
-    for i in range(img.shape[0]):
-        for j in range(img.shape[1]):
-            if img[i, j] != 0:
-                for pixel in distance_list:
-                    if (
-                        i + pixel[0] < 0
-                        or i + pixel[0] >= img.shape[0]
-                        or j + pixel[1] < 0
-                        or j + pixel[1] >= img.shape[1]
-                    ):
-                        img_dist[i, j] = pixel[2]
-                        break
-                        continue
-
-                    if img[i + int(pixel[0]), j + int(pixel[1])] == 0:
-                        img_dist[i, j] = pixel[2]
-                        break
-                if img_dist[i, j] == 0:
-                    print(f"WARNING: Unable to find any spots in this frame")
-                    return np.zeros(img.shape)
-    return img_dist
-
-def gaussian(height, center_x, center_y, width_x, width_y):
-    """Returns a gaussian function with the given parameters"""
+def gaussian_formula(x, y, height, center_x, center_y, width_x, width_y):
+    # Ensure widths are floating point numbers
     width_x = float(width_x)
     width_y = float(width_y)
-    return lambda x,y: height*np.exp(
-                -(((center_x-x)/width_x)**2+((center_y-y)/width_y)**2)/2)
+    
+    # Prevent division by zero or log(neg) errors; ensure widths > small epsilon
+    width_x = max(width_x, 1e-6)
+    width_y = max(width_y, 1e-6)
+    
+    # Calculate distances from centre
+    xp = center_x - x
+    yp = center_y - y
+    
+    # Calculate exponent term for 2D Gaussian
+    exponent = -((xp / width_x)**2 + (yp / width_y)**2) / 2
+    
+    # Calculate Gaussian value
+    return height * np.exp(exponent)
+
+def gaussian_2d_for_curve_fit(coords, height, center_x, center_y, width_x, width_y):
+    # Unpack flattened x and y coordinate arrays
+    x, y = coords
+    
+    # Calculate Gaussian values for all coordinates using the formula
+    g = gaussian_formula(x, y, height, center_x, center_y, width_x, width_y)
+    
+    # Return flattened array of Gaussian values for curve_fit
+    return g.ravel()
 
 def moments(data):
-    """Returns (height, x, y, width_x, width_y)
-    the gaussian parameters of a 2D distribution by calculating its
-    moments """
-    # total = data.sum()
-    # X, Y = np.indices(data.shape)
-    # x = (X*data).sum()/total
-    # y = (Y*data).sum()/total
-    # if int(y)>=16 or int(y)<0: y=8
-    # if int(x)>=16 or int(x)<0: x=8
-    # col = data[:, int(y)]
-    # width_x = np.sqrt(np.abs((np.arange(col.size)-x)**2*col).sum()/col.sum())
-    # row = data[int(x), :]
-    # width_y = np.sqrt(np.abs((np.arange(row.size)-y)**2*row).sum()/row.sum())
-    # height = data.max()
-    return 1000, 8, 8, 1.5, 1.5 #height, x, y, width_x, width_y
+    # Calculate total intensity sum
+    total = data.sum()
+    
+    # Check for invalid data (empty, zero sum, too small)
+    if total <= 0 or data.shape[0] < 2 or data.shape[1] < 2:
+         # Return default guess if data is bad
+         return 1000, data.shape[1]//2, data.shape[0]//2, 1.5, 1.5
+
+    # Get Y, X index arrays matching data shape
+    Y, X = np.indices(data.shape)
+    
+    # Calculate intensity-weighted centroid (y, x)
+    y = (Y*data).sum()/total
+    x = (X*data).sum()/total
+
+    # Ensure centroid indices are within array bounds
+    x_idx = int(np.clip(x, 0, data.shape[1]-1))
+    y_idx = int(np.clip(y, 0, data.shape[0]-1))
+
+    # Estimate width_x (std dev) along row through centroid
+    row = data[y_idx, :]
+    # Check row sum to avoid errors
+    if row.sum() > 0:
+         # Calculate intensity-weighted standard deviation for x
+         width_x = np.sqrt(np.abs((np.arange(row.size)-x)**2*row).sum()/row.sum())
+    else:
+         # Use fallback width if row sum is zero
+         width_x = 1.5
+
+    # Estimate width_y (std dev) along column through centroid
+    col = data[:, x_idx]
+    # Check column sum to avoid errors
+    if col.sum() > 0:
+         # Calculate intensity-weighted standard deviation for y
+         width_y = np.sqrt(np.abs((np.arange(col.size)-y)**2*col).sum()/col.sum())
+    else:
+         # Use fallback width if column sum is zero
+         width_y = 1.5
+
+    # Estimate height from pixel value at centroid
+    height = data[y_idx, x_idx]
+    
+    # Ensure calculated widths are positive
+    width_x = max(width_x, 1e-6)
+    width_y = max(width_y, 1e-6)
+
+    # Return estimated Gaussian parameters: height, x, y, width_x, width_y
+    return height, x, y, width_x, width_y
 
 def fit2Dgaussian(data):
-    """Returns (height, x, y, width_x, width_y)
-    the gaussian parameters of a 2D distribution found by a fit"""
-    params = moments(data)
-    errorfunction = lambda p: np.ravel(gaussian(*p)(*np.indices(data.shape)) -
-                                 data)
-    p, success = optimize.leastsq(errorfunction, params)
-    return p, success
+    # Calculate initial guess for Gaussian parameters using moments
+    params_initial = moments(data) # Order: [height, x, y, wx, wy]
 
+    # Create grid of Y and X indices matching data shape
+    Y_indices, X_indices = np.indices(data.shape)
+
+    # Flatten coordinate arrays and data array for curve_fit
+    x_data_flat = X_indices.ravel()
+    y_data_flat = Y_indices.ravel()
+    # Pass coordinates as a tuple (required format for curve_fit func)
+    coords = (x_data_flat, y_data_flat)
+    data_flat = data.ravel()
+
+    # Initialise success flag and optimal parameters (popt)
+    success = 0
+    popt = params_initial # Default to initial guess
+
+    try:
+        # Use scipy.optimize.curve_fit to find best Gaussian parameters
+        # func: the Gaussian model function
+        # xdata: the flattened coordinates tuple
+        # ydata: the flattened pixel intensities
+        # p0: the initial parameter guess
+        popt, pcov = curve_fit(
+            gaussian_2d_for_curve_fit,
+            coords,
+            data_flat,
+            p0=params_initial
+        )
+        # If fit succeeds without error, set success flag
+        success = 1
+
+    except RuntimeError:
+        # Handle cases where the fit does not converge
+        print("Warning: 2D Gaussian fit did not converge, using initial guess.")
+        # success remains 0, popt remains initial guess
+        pass
+    except Exception as e:
+        # Handle any other unexpected errors during fitting
+        print(f"Warning: An error occurred during 2D Gaussian fit: {e}")
+        # success remains 0, popt remains initial guess
+        pass
+
+    # Return optimal parameters found and success flag
+    return popt, success

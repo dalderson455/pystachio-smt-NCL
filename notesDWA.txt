@@ -1,0 +1,17 @@
+Removed GUI entirely - Caused too many issues. Can revisit when core code is good. 
+Removed JIT implementation in algos - changed to scipy library
+next - change fwhm fitting from leastsqs to curve_fit DONE
+Spots.py
+    find_in_frame - made more readable and modular
+    merge_conincident_candidates - removed nested loop apprach and uses scipy.KDtree 
+    filter_candidates - removed all the loops. now uses a boolean mask of all filters on each spot and then applies all at once
+    refine_centres - Multiprocessor now
+    get_spot_widths - parallelised
+    get_spot_intensities - parallelised
+Trajectories.py
+    compare_trajectories - added graph of metric
+tracking.py
+    track_frame - returns success rate of fitting
+    track - facilities fitting succes rate
+
+make docstrings where needed

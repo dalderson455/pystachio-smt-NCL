@@ -42,7 +42,7 @@ default_parameters = {
           'level': 'basic',
           'class': 'general',
           'default': [],
-          'options': ['simulate', 'track', 'postprocess', 'view', 'app'] },
+          'options': ['simulate', 'track', 'postprocess', 'view'] },
     'name':
         { 'description': 'Name prefixing all files associated with this run',
           'level': 'basic',
@@ -112,19 +112,19 @@ default_parameters = {
         { 'description': 'Number of spots to simulate',
           'level': 'basic',
           'class': 'simulation',
-          'default': 10 },
+          'default': 50 },
     'frame_size':
         { 'description': 'Size of frame to simulate ([x,y])',
           'level': 'basic',
           'class': 'simulation',
-          'default': [100,100] },
+          'default': [250,250] },
     'I_single':
         { 'description': 'I_single value for simulated spots',
           'level': 'basic',
           'class': 'simulation',
           'default': 10000.0 },
     'bg_mean':
-        { 'description': 'Mean of the background pixlel intensity',
+        { 'description': 'Mean of the background pixel intensity',
           'level': 'advanced',
           'class': 'simulation',
           'default': 500.0 },
@@ -137,7 +137,7 @@ default_parameters = {
         { 'description': 'Diffusion coefficient of the diffusing spots',
           'level': 'basic',
           'class': 'simulation',
-          'default': 1.0 },
+          'default': 2.0 },
     'spot_width':
         { 'description': 'Width of the simulated Gaussian spot',
           'level': 'advanced',
@@ -280,77 +280,6 @@ class Parameters:
             # Set all the values to be the default values
             self._params[param]['value'] = self._params[param]['default']
 
-#EJH#         self.num_procs = 0
-#EJH#         self.verbose = True  # Whether or not to display verbose console output
-#EJH#         self.c_split = "None"  # How the channels are split
-#EJH#         self.frames_to_track = (
-#EJH#             0  # How many frames to track after the laser has switched on
-#EJH#         )
-#EJH#         self.start_channel = 0  # First channel to use
-#EJH#         self.end_channel = 0  # Last channel to use
-#EJH#         self.use_cursor = False  # Whether or not to use the cursor
-#EJH#         self.determine_first_frames = (
-#EJH#             False  # Are there blank frames before the shutter opens?
-#EJH#         )
-#EJH#         self.frame_avg_window = 1  # Number of frames to average over
-#EJH#         self.sat_pixel_val = 10 ** 10  # Value representing saturated pixels
-#EJH# 
-#EJH#         self.task = ""
-#EJH#         self.verbose = True
-#EJH#         self.render_image = False
-#EJH#         self.use_mask = False
-#EJH#         self.seed_name = ""
-#EJH# 
-#EJH#         # Spots.find_in_frame
-#EJH#         self.filter_image = "gaussian"
-#EJH#         self.disk_radius = 5
-#EJH#         self.bw_threshold_tolerance = 1.0
-#EJH#         self.snr_filter_cutoff = 0.4
-#EJH# 
-#EJH#         self.max_displacement = 5.0
-#EJH#         # Initialise
-#EJH#         self.num_spots = 10
-#EJH#         self.Isingle = 10000.0
-#EJH#         self.BGmean = 500.0  # mean background pixel intensity
-#EJH#         self.BGstd = 120.0  # standard deviation of background pixels
-#EJH#         self.num_frames = 100
-#EJH#         self.split_frame = False
-#EJH#         self.frame_size = [64, 64]
-#EJH# 
-#EJH#         self.min_traj_len = 3
-#EJH#         self.bleach_time = 0 # in frames, if 0 then no bleaching
-#EJH#         self.diffusionCoeff = 1.0 # um2/s
-#EJH# 
-#EJH#         self.max_spot_molecules = 10
-#EJH#         self.num_spot_molecules = None
-#EJH#         self.nDiffPoints = 4  # number of MSD points to calculate diffusion const
-#EJH#         self.frameTime = 0.005  # seconds
-#EJH#         self.pixelSize = 0.120  # microns
-#EJH#         self.PSFwidth = (
-#EJH#             0.160 / self.pixelSize
-#EJH#         )  # Sigma of a Gaussian, ~2/3 airy disk diameter
-#EJH#         self.MSD_num_points = 4
-#EJH# 
-#EJH#         self.p_bleach_per_frame = 0.05
-#EJH# 
-#EJH#         self.subarray_halfwidth = 8
-#EJH#         self.inner_mask_radius = 5
-#EJH#         self.gauss_mask_sigma = 2.
-#EJH#         self.gauss_mask_max_iter = 1000
-#EJH# 
-#EJH#         self.stoic_method = "linear_fit"
-#EJH#         self.num_stoic_frames = 4
-#EJH#         self.colocalize_n_frames = 5
-#EJH#         
-#EJH#         self.ALEX=False
-#EJH#         self.start_channel='L'
-#EJH#         self.colocalise=False
-#EJH#         self.colocalise_distance = 5
-#EJH#         self.overlap_thresh = 0.75
-#EJH#         
-#EJH#         self.calculate_isingle=True
-#EJH#         self.copy_number=False
-
     def __getattr__(self, name):
         if name.startswith("_"):
             return object.__getattribute__(self, name)
@@ -410,7 +339,7 @@ class Parameters:
         if self.task == ['help']:
             return
         elif self.task != ['app']:
-            self.name = args.pop(0)
+             self.name = args.pop(0)
 
         for arg in args:
             key, value = arg.split("=", 2)
