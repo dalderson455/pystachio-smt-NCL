@@ -33,7 +33,7 @@ Version: 0.2.1
 
 import sys
 
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import numpy as np
 import scipy.ndimage
 from scipy import optimize
@@ -258,12 +258,12 @@ def fit2Dgaussian(data):
 
     except RuntimeError:
         # Handle cases where the fit does not converge
-        print("Warning: 2D Gaussian fit did not converge, using initial guess.")
+        #print("Warning: 2D Gaussian fit did not converge, using initial guess.")
         # success remains 0, popt remains initial guess
         pass
     except Exception as e:
         # Handle any other unexpected errors during fitting
-        print(f"Warning: An error occurred during 2D Gaussian fit: {e}")
+        #print(f"Warning: An error occurred during 2D Gaussian fit: {e}")
         # success remains 0, popt remains initial guess
         pass
 
